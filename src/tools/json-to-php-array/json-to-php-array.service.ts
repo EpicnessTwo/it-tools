@@ -1,40 +1,37 @@
 export { convertArrayToPhp };
 
-function convertArrayToPhp(array: { array: any }, indentSize: { indentSize: any }): string {
-  if (indentSize < 0) {
-    throw new Error('indentSize must be a positive integer');
-  }
+function convertArrayToPhp(jsonString: string, indentSize: number): string | null {
+  try {
+    const jsonObject = JSON.parse(jsonString);
 
-  const convertToPhpArray = (obj: any, indentSize: number = 4, level: number = 0): string => {
-    const indentString = ' '.repeat(indentSize);
-    const indent = indentString.repeat(level);
-    const innerIndent = indentString.repeat(level + 1);
+    function convertToPhpArray(obj: any, indentLevel: number = 0): string {
+      const indent = ' '.repeat(indentSize * indentLevel); // Indentation based on provided size
+      const childIndent = ' '.repeat(indentSize * (indentLevel + 1));
 
-    const newlinesString = (indentSize > 0) ? '\n' : '';
-
-    if (Array.isArray(obj)) {
-      if (obj.length === 0) {
-        return '[]';
+      if (Array.isArray(obj)) {
+        const elements = obj
+          .map((el) => `${childIndent}${convertToPhpArray(el, indentLevel + 1)}`)
+          .join(",\n");
+        return `[\n${elements}\n${indent}]`;
+      } else if (obj !== null && typeof obj === 'object') {
+        const elements = Object.entries(obj)
+          .map(([key, value]) => `${childIndent}'${key}' => ${convertToPhpArray(value, indentLevel + 1)}`)
+          .join(",\n");
+        return `[\n${elements}\n${indent}]`;
+      } else if (typeof obj === 'string') {
+        return `'${obj.replace(/'/g, "\\'")}'`;
+      } else if (typeof obj === 'number' || typeof obj === 'boolean') {
+        return `${obj}`;
+      } else if (obj === null) {
+        return 'null';
+      } else {
+        throw new Error(`Unsupported data type: ${typeof obj}`);
       }
-      const arrayItems = obj.map(element => `${innerIndent}${convertToPhpArray(element, indentSize, level + 1)}`);
-      return `[${newlinesString}${arrayItems.join(', ' + newlinesString)},${newlinesString}${indent}]`;
-    } else if (typeof obj === 'object' && obj !== null) {
-      if (! obj.length > 1) {
-        return '[]';
-      }
-      const objectItems = Object.entries(obj).map(([key, value]) =>
-          `${innerIndent}'${key}' => ${convertToPhpArray(value, indentSize, level + 1)}`
-      );
-      return `[${newlinesString}${objectItems.join(', ' + newlinesString)},${newlinesString}${indent}]`;
-    } else if (typeof obj === 'string') {
-      return `'${obj.replace(/'/g, "\\'")}'`;
-    } else if (obj === null) {
-      return 'null';
-    } else {
-      return obj.toString();
     }
-  };
-
-  return '$array = ' + convertToPhpArray(array) + ';';
+    return convertToPhpArray(jsonObject);
+  } catch (error) {
+    console.error('Invalid JSON string:', error.message);
+    return null;
+  }
 }
 

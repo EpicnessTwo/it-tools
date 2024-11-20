@@ -6,12 +6,12 @@ import { withDefaultOnError } from '@/utils/defaults';
 
 const indentSize = useStorage('json-to-php-array:indent-size', 4);
 
-function transformer(value: string) {
+function transformer(json: string) {
   return withDefaultOnError(() => {
-    if (value === '') {
+    if (json === '') {
       return '';
     }
-    return convertArrayToPhp({ array: JSON5.parse(value) }, { indentSize });
+    return convertArrayToPhp(json, 4);
   }, '');
 }
 
